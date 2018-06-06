@@ -14,13 +14,26 @@ angular.module('cwill747.phonenumber', [])
       if (!value) {
         return value;
       }
-      return value.replace(/([^0-9|+])/g, '');
+      return value.replace(/([^0-9|+|x])/g, '');
     }
 
-    function applyPhoneMask(value, region) {
+    function extractNumbers(value, ext) {
+      var phoneParts = value.split(ext);
+      var phoneNumber = phoneParts[0];
+      return {
+        phoneNumber: phoneParts[0] ? phoneParts[0] : '',
+        extension: phoneParts[1]
+      }
+    }
+
+    function applyPhoneMask(value, region, ext) {
       var phoneMask = value;
       try {
-        phoneMask = $window.phoneUtils.formatAsTyped(value, region);
+        var phoneNumber = extractNumbers(value, ext);
+        var extension = typeof phoneNumber.extension === 'string' ? ' ' + ext + phoneNumber.extension : '';
+
+        phoneMask = phoneUtils.formatAsTyped(phoneNumber.phoneNumber, region);
+        phoneMask += extension;
       }
       catch (err) {
         $log.debug(err);
@@ -33,7 +46,8 @@ angular.module('cwill747.phonenumber', [])
       require: '?ngModel',
       scope: {
         countryCode: '=',
-        nonFormatted: '=?'
+        nonFormatted: '=?',
+        extSymbol: '='
       },
       controllerAs: '',
       controller: function() {
@@ -41,6 +55,7 @@ angular.module('cwill747.phonenumber', [])
       },
       link: function(scope, element, attrs, ctrl) {
         var el = element[0];
+        var ext = scope.extSymbol || 'x';
         scope.$watch('countryCode', function() {
           ctrl.$modelValue = ctrl.$viewValue + ' ';
         });
@@ -50,7 +65,7 @@ angular.module('cwill747.phonenumber', [])
           scope.nonFormatted = cleanValue;
           var formattedValue = '';
           if (cleanValue && cleanValue.length > 1) {
-            formattedValue = applyPhoneMask(cleanValue, scope.countryCode);
+            formattedValue = applyPhoneMask(cleanValue, scope.countryCode, ext);
           }
           else {
             formattedValue = cleanValue;
@@ -62,7 +77,7 @@ angular.module('cwill747.phonenumber', [])
           if (ctrl.$isEmpty(value)) {
             return value;
           }
-          return applyPhoneMask(clearValue(value), scope.countryCode);
+          return applyPhoneMask(clearValue(value), scope.countryCode, ext);
         }
 
         function parser(value) {
