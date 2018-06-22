@@ -19,46 +19,14 @@
 /* global angular */
 angular.module('cwill747.phonenumber', [])
   .directive('phoneNumber', ['$log', '$window', function($log, $window) {
-    function clearValue(value) {
-      if (!value) {
-        return value;
-      }
-      return value.replace(/([^0-9|+|x])/g, '');
-    }
-
-    function extractNumbers(value, ext) {
-      var phoneParts = value.split(ext);
-      var phoneNumber = phoneParts[0];
-      return {
-        phoneNumber: phoneParts[0] ? phoneParts[0] : '',
-        extension: phoneParts[1]
-      }
-    }
-
-    function applyPhoneMask(value, region, ext) {
-      var phoneMask = value;
-      try {
-        var phoneNumber = extractNumbers(value, ext);
-        var extension = typeof phoneNumber.extension === 'string' ? ' ' + ext + phoneNumber.extension : '';
-
-        phoneMask = phoneUtils.formatAsTyped(phoneNumber.phoneNumber, region);
-        phoneMask += extension;
-      }
-      catch (err) {
-        $log.debug(err);
-      }
-      return phoneMask;
-    }
-
     return {
       restrict: 'A',
       require: '?ngModel',
       scope: {
         countryCode: '=',
         nonFormatted: '=?',
-        extSymbol: '='
+        extSymbol: '@'
       },
-      controllerAs: '',
       controller: function() {
         this.countryCode = this.countryCode || 'us';
       },
@@ -68,6 +36,39 @@ angular.module('cwill747.phonenumber', [])
         scope.$watch('countryCode', function() {
           ctrl.$modelValue = ctrl.$viewValue + ' ';
         });
+
+        function clearValue(value) {
+          if (!value) {
+            return value;
+          }
+          var expression = '([^0-9|+|' + ext + '])';
+          var flags = 'g';
+          var regExpression = new RegExp(expression, flags);
+          return value.replace(regExpression, '');
+        }
+
+        function extractNumbers(value, ext) {
+          var phoneParts = value.split(ext);
+          return {
+            phoneNumber: phoneParts[0] ? phoneParts[0] : '',
+            extension: phoneParts[1]
+          }
+        }
+
+        function applyPhoneMask(value, region, ext) {
+          var phoneMask = value;
+          try {
+            var phoneNumber = extractNumbers(value, ext);
+            var extension = typeof phoneNumber.extension === 'string' ? ' ' + ext + phoneNumber.extension : '';
+
+            phoneMask = phoneUtils.formatAsTyped(phoneNumber.phoneNumber, region);
+            phoneMask += extension;
+          }
+          catch (err) {
+            $log.debug(err);
+          }
+          return phoneMask;
+        }
 
         function clean(value) {
           var cleanValue = clearValue(value);
