@@ -34,26 +34,29 @@ angular.module('cwill747.phonenumber', [])
           }
           var expression = '([^0-9|+|' + ext + '])';
           var flags = 'g';
-          var regExpression = new RegExp(expression, flags);
-          return value.replace(regExpression, '');
+          var regex = new RegExp(expression, flags);
+          return value.replace(regex, '');
         }
 
-        function extractNumbers(value, ext) {
-          var phoneParts = value.split(ext);
-          return {
-            phoneNumber: phoneParts[0] ? phoneParts[0] : '',
-            extension: phoneParts[1]
-          }
-        }
-
-        function applyPhoneMask(value, region, ext) {
+        function applyPhoneMask(value, region) {
           var phoneMask = value;
           try {
-            var phoneNumber = extractNumbers(value, ext);
-            var extension = typeof phoneNumber.extension === 'string' ? ' ' + ext + phoneNumber.extension : '';
+            var regex = new RegExp(ext, 'g');
+            var cleanValue = clearValue(value).replace(regex, ''); // without extensions
+            var isE164 = cleanValue.match(/^(\+1|1)/g, '');
+            var phoneNumber = value;
+            var phoneNumberLength = isE164 && isE164.length ? (10 + isE164[0].length) : 10;
 
-            phoneMask = phoneUtils.formatAsTyped(phoneNumber.phoneNumber, region);
-            phoneMask += extension;
+            var extension = '';
+            if (cleanValue.length >= 10) {
+              phoneNumber = cleanValue.substring(0, phoneNumberLength);
+              extension = cleanValue.substring(phoneNumberLength);
+            }
+            phoneMask = phoneUtils.formatAsTyped(phoneNumber, region);
+
+            if (extension) {
+              phoneMask += ' ' + ext + extension;
+            }
           }
           catch (err) {
             $log.debug(err);
@@ -66,7 +69,7 @@ angular.module('cwill747.phonenumber', [])
           scope.nonFormatted = cleanValue;
           var formattedValue = '';
           if (cleanValue && cleanValue.length > 1) {
-            formattedValue = applyPhoneMask(cleanValue, scope.countryCode, ext);
+            formattedValue = applyPhoneMask(cleanValue, scope.countryCode);
           }
           else {
             formattedValue = cleanValue;
@@ -78,7 +81,7 @@ angular.module('cwill747.phonenumber', [])
           if (ctrl.$isEmpty(value)) {
             return value;
           }
-          return applyPhoneMask(clearValue(value), scope.countryCode, ext);
+          return applyPhoneMask(clearValue(value), scope.countryCode);
         }
 
         function parser(value) {
