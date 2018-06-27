@@ -28,7 +28,7 @@ angular.module('cwill747.phonenumber', [])
           ctrl.$modelValue = ctrl.$viewValue + ' ';
         });
 
-        function clearValue(value) {
+        function clearValue (value) {
           if (!value) {
             return value;
           }
@@ -38,24 +38,33 @@ angular.module('cwill747.phonenumber', [])
           return value.replace(regex, '');
         }
 
-        function applyPhoneMask(value, region) {
+        function extractNumbers (value) {
+          var regex = new RegExp(ext, 'g');
+          var cleanValue = clearValue(value).replace(regex, ''); // without extensions
+          var isE164 = cleanValue.match(/^(\+1|1)/g, '');
+          var phoneNumber = value;
+          var phoneNumberLength = isE164 && isE164.length ? (10 + isE164[0].length) : 10;
+
+          var extension = '';
+          if (cleanValue.length >= 10) {
+            phoneNumber = cleanValue.substr(0, phoneNumberLength);
+            extension = cleanValue.substr(phoneNumberLength);
+          }
+
+          return {
+            phoneNumber: phoneNumber,
+            extension: extension
+          };
+        }
+
+        function applyPhoneMask (value, region) {
           var phoneMask = value;
           try {
-            var regex = new RegExp(ext, 'g');
-            var cleanValue = clearValue(value).replace(regex, ''); // without extensions
-            var isE164 = cleanValue.match(/^(\+1|1)/g, '');
-            var phoneNumber = value;
-            var phoneNumberLength = isE164 && isE164.length ? (10 + isE164[0].length) : 10;
+            var output = extractNumbers(value);
+            phoneMask = phoneUtils.formatAsTyped(output.phoneNumber, region);
 
-            var extension = '';
-            if (cleanValue.length >= 10) {
-              phoneNumber = cleanValue.substring(0, phoneNumberLength);
-              extension = cleanValue.substring(phoneNumberLength);
-            }
-            phoneMask = phoneUtils.formatAsTyped(phoneNumber, region);
-
-            if (extension) {
-              phoneMask += ' ' + ext + extension;
+            if (output.extension) {
+              phoneMask += ' ' + ext + output.extension;
             }
           }
           catch (err) {
@@ -64,7 +73,7 @@ angular.module('cwill747.phonenumber', [])
           return phoneMask;
         }
 
-        function clean(value) {
+        function clean (value) {
           var cleanValue = clearValue(value);
           scope.nonFormatted = cleanValue;
           var formattedValue = '';
@@ -77,14 +86,14 @@ angular.module('cwill747.phonenumber', [])
           return formattedValue.trim();
         }
 
-        function formatter(value) {
+        function formatter (value) {
           if (ctrl.$isEmpty(value)) {
             return value;
           }
           return applyPhoneMask(clearValue(value), scope.countryCode);
         }
 
-        function parser(value) {
+        function parser (value) {
           if (ctrl.$isEmpty(value)) {
             scope.nonFormatted = '';
             return value;
@@ -114,10 +123,11 @@ angular.module('cwill747.phonenumber', [])
           return clearValue(formattedValue);
         }
 
-        function validator(value) {
+        function validator (value) {
           var isValidForRegion = false;
           try {
-            isValidForRegion = $window.phoneUtils.isValidNumberForRegion(value, scope.countryCode);
+            var output = extractNumbers(value);
+            isValidForRegion = $window.phoneUtils.isValidNumberForRegion(output.phoneNumber, scope.countryCode);
           }
           catch (err) {
             $log.debug(err);
