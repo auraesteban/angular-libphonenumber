@@ -41,7 +41,7 @@ angular.module('cwill747.phonenumber', [])
           if (!value) {
             return value;
           }
-          var expression = '([^0-9|+|' + ext + '])';
+          var expression = '([^0-9+' + ext + '])';
           var flags = 'g';
           var regex = new RegExp(expression, flags);
           return value.replace(regex, '');
@@ -57,7 +57,7 @@ angular.module('cwill747.phonenumber', [])
           var extension = '';
           if (cleanValue.length >= 10) {
             phoneNumber = cleanValue.substr(0, phoneNumberLength);
-            extension = cleanValue.substr(phoneNumberLength);
+            extension = cleanValue.substr(phoneNumberLength).replace(/[\D]/g, '');
           }
 
           return {
